@@ -6,12 +6,14 @@ import (
 	"io"
 
 	"github.com/filecoin-project/go-address"
+	commcid "github.com/filecoin-project/go-fil-commcid"
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	"github.com/filecoin-project/specs-actors/actors/builtin"
 	initactor "github.com/filecoin-project/specs-actors/actors/builtin/init"
 	acrypto "github.com/filecoin-project/specs-actors/actors/crypto"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
+	car "github.com/ipfs/go-car"
 	"github.com/ipfs/go-cid"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	offline "github.com/ipfs/go-ipfs-exchange-offline"
@@ -292,16 +294,42 @@ func (chn *ChainStateReadWriter) ReadOnlyStateStore() cborutil.ReadOnlyIpldStore
 
 // ChainExport exports the chain from `head` up to and including the genesis block to `out`
 func (chn *ChainStateReadWriter) ChainExport(ctx context.Context, head block.TipSetKey, out io.Writer) error {
-	headTS, err := chn.GetTipSet(head)
+	// headTS, err := chn.GetTipSet(head)
+	// if err != nil {
+	// 	return err
+	// }
+	// logStore.Infof("starting CAR file export: %s", head.String())
+	// if err := chain.Export(ctx, headTS, chn.readWriter, chn.messageProvider, chn, out); err != nil {
+	// 	return err
+	// }
+	// logStore.Infof("exported CAR file with head: %s", head.String())
+
+	// Get the non-genesis state root cids to ignore
+	stateRootsToIgnore, err := chain.ExportIgnore(ctx, head, chn.readWriter)
 	if err != nil {
 		return err
 	}
-	logStore.Infof("starting CAR file export: %s", head.String())
-	if err := chain.Export(ctx, headTS, chn.readWriter, chn.messageProvider, chn, out); err != nil {
-		return err
+
+	offl := offline.Exchange(chn.bstore)
+	blkserv := blockservice.New(chn.bstore, offl)
+	dserv := merkdag.NewDAGService(blkserv)
+	ignoreSectorCommsWalkFunc := func(nd format.Node) (out []*format.Link, err error) {
+		for _, link := range nd.Links() {
+			// Ignore bad commitment cids
+			if link.Cid.Prefix().MhType == uint64(commcid.FC_SEALED_V1) || link.Cid.Prefix().MhType == uint64(commcid.FC_UNSEALED_V1) {
+				continue
+			}
+			// Ignore non-genesis state cids
+			if stateRootsToIgnore.Has(link.Cid) {
+				continue
+			}
+			out = append(out, link)
+		}
+
+		return out, nil
 	}
-	logStore.Infof("exported CAR file with head: %s", head.String())
-	return nil
+	logStore.Infof("starting CAR file export: %s", head.String())
+	return car.WriteCarWithWalker(ctx, dserv, head.ToSlice(), out, ignoreSectorCommsWalkFunc)
 }
 
 // ChainImport imports a chain from `in`.

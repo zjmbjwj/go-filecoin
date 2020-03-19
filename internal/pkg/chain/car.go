@@ -2,19 +2,19 @@ package chain
 
 import (
 	"context"
+	"errors"
 	"io"
 
+	"github.com/filecoin-project/go-filecoin/internal/pkg/block"
+	"github.com/filecoin-project/go-filecoin/internal/pkg/encoding"
+	"github.com/filecoin-project/go-filecoin/internal/pkg/types"
+	"github.com/filecoin-project/go-filecoin/internal/pkg/vm"
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-car"
 	carutil "github.com/ipfs/go-car/util"
 	"github.com/ipfs/go-cid"
 	format "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log"
-
-	"github.com/filecoin-project/go-filecoin/internal/pkg/block"
-	"github.com/filecoin-project/go-filecoin/internal/pkg/encoding"
-	"github.com/filecoin-project/go-filecoin/internal/pkg/types"
-	"github.com/filecoin-project/go-filecoin/internal/pkg/vm"
 )
 
 var logCar = logging.Logger("chain/car")
@@ -35,6 +35,35 @@ type carStateReader interface {
 type carHeader struct {
 	Roots   block.TipSetKey `cbor:"roots"`
 	Version uint64          `cbor:"version"`
+}
+
+// ExportIgnore returns all the cids of a chain with a given head key in the given store that
+// should be ignored during export to a car file.  This set of cids is currently the
+// set of state root cids in blocks that are not genesis.
+func ExportIgnore(ctx context.Context, headKey block.TipSetKey, cr carChainReader) (*cid.Set, error) {
+	ignore := cid.NewSet()
+	headTS, err := cr.GetTipSet(headKey)
+	if err != nil {
+		return nil, err
+	}
+
+	iter := IterAncestors(ctx, cr, headTS)
+	// accumulate TipSet stateRoots in descending order.
+	for ; !iter.Complete(); err = iter.Next() {
+		if err != nil {
+			return nil, err
+		}
+		tip := iter.Value()
+		for i := 0; i < tip.Len(); i++ {
+			header := tip.At(i)
+			if header.Height == 0 {
+				// gathered up to but not including genesis
+				return ignore, nil
+			}
+			ignore.Add(header.StateRoot.Cid)
+		}
+	}
+	return nil, errors.New("export ignore traversal did not end at genesis")
 }
 
 // Export will export a chain (all blocks and their messages) to the writer `out`.
