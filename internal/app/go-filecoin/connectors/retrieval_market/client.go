@@ -30,6 +30,9 @@ type RetrievalClientConnector struct {
 	cs       ChainReaderAPI
 }
 
+// Need something to get block height
+// something to get balance
+
 var _ retrievalmarket.RetrievalClientNode = new(RetrievalClientConnector)
 
 // NewRetrievalClientConnector creates a new RetrievalClientConnector
@@ -144,16 +147,7 @@ func (r *RetrievalClientConnector) getBalance(ctx context.Context, account addre
 		return types.ZeroAttoFIL, err
 	}
 
-	actor, err := r.cs.GetActorAt(ctx, ts.Key(), account)
-	if err != nil {
-		return types.ZeroAttoFIL, err
-	}
-
-	return actor.Balance, nil
-}
-
-func (r *RetrievalClientConnector) GetChainHead(ctx context.Context) (shared.TipSetToken, abi.ChainEpoch, error) {
-	return connectors.GetChainHead(r.cs)
+	return types.ZeroAttoFIL, nil
 }
 
 func (r *RetrievalClientConnector) getTipSet(tok shared.TipSetToken) (block.TipSet, error) {

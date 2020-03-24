@@ -31,6 +31,8 @@ type RetrievalProviderConnector struct {
 	unsealer    UnsealerAPI
 }
 
+// provider must be able to get chain head
+
 var _ retmkt.RetrievalProviderNode = &RetrievalProviderConnector{}
 
 // UnsealerAPI is the API required for unsealing a sectorgi
@@ -120,6 +122,7 @@ func (r *RetrievalProviderConnector) GetMinerWorkerAddress(ctx context.Context, 
 	return r.paychMgr.GetMinerWorkerAddress(ctx, miner, tok)
 }
 
+// GetChainHead gets the chain head
 func (r *RetrievalProviderConnector) GetChainHead(ctx context.Context) (shared.TipSetToken, abi.ChainEpoch, error) {
 	return connectors.GetChainHead(r.chainReader)
 }

@@ -236,6 +236,22 @@ func (v *View) MinerPledgeCollateral(ctx context.Context, miner addr.Address) (l
 	return
 }
 
+func (v *View) AccountGetBalance(ctx context.Context, root cid.Cid, account addr.Address) (abi.TokenAmount, error) {
+	table := v.asBalanceTable(ctx, root)
+	hasBalance, err := table.Has(account)
+	if err != nil {
+		return big.Zero(), err
+	}
+	balance := abi.NewTokenAmount(0)
+	if hasBalance {
+		balance, err = table.Get(account)
+		if err != nil {
+			return big.Zero(), err
+		}
+	}
+	return balance, nil
+}
+
 func (v *View) loadInitActor(ctx context.Context) (*notinit.State, error) {
 	actr, err := v.loadActor(ctx, builtin.InitActorAddr)
 	if err != nil {
