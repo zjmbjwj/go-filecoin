@@ -192,7 +192,7 @@ func (m *StorageMinerNodeConnector) WaitForSelfDeals(ctx context.Context, mcid c
 
 // SendPreCommitSector creates a pre-commit sector message and sends it to the
 // network.
-func (m *StorageMinerNodeConnector) SendPreCommitSector(ctx context.Context, sectorNum abi.SectorNumber, sealedCID cid.Cid, sealRandEpoch, expiration abi.ChainEpoch, pieces ...storagenode.PieceWithDealInfo) (cid.Cid, error) {
+func (m *StorageMinerNodeConnector) SendPreCommitSector(ctx context.Context, proofType abi.RegisteredProof, sectorNum abi.SectorNumber, sealedCID cid.Cid, sealRandEpoch, expiration abi.ChainEpoch, pieces ...storagenode.PieceWithDealInfo) (cid.Cid, error) {
 	waddr, err := m.getMinerWorkerAddress(ctx, m.chainState.Head())
 	if err != nil {
 		return cid.Undef, err
@@ -244,7 +244,7 @@ func (m *StorageMinerNodeConnector) WaitForPreCommitSector(ctx context.Context, 
 
 // SendProveCommitSector creates a commit sector message and sends it to the
 // network.
-func (m *StorageMinerNodeConnector) SendProveCommitSector(ctx context.Context, sectorNum abi.SectorNumber, proof []byte, deals ...abi.DealID) (cid.Cid, error) {
+func (m *StorageMinerNodeConnector) SendProveCommitSector(ctx context.Context, proofType abi.RegisteredProof, sectorNum abi.SectorNumber, proof []byte, deals ...abi.DealID) (cid.Cid, error) {
 	waddr, err := m.getMinerWorkerAddress(ctx, m.chainState.Head())
 	if err != nil {
 		return cid.Undef, err
