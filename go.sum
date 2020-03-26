@@ -165,6 +165,8 @@ github.com/filecoin-project/go-statestore v0.1.0 h1:t56reH59843TwXHkMcwyuayStBIi
 github.com/filecoin-project/go-statestore v0.1.0/go.mod h1:LFc9hD+fRxPqiHiaqUEZOinUJB4WARkRfNl10O7kTnI=
 github.com/filecoin-project/go-storage-miner v0.0.0-20200320161144-fd9286326083 h1:SPJ6XYmuy6deeKpb0bwMk5U2mbdZTDNgNsXx2juosTE=
 github.com/filecoin-project/go-storage-miner v0.0.0-20200320161144-fd9286326083/go.mod h1:9QvK8INekeDqs1LrrUHsAHX+pjW69F8yn36wT/2EBz0=
+github.com/filecoin-project/go-storage-miner v0.0.0-20200325225107-781a37a4b1b4 h1:y9X8ywogDqVG6/iP5pVTAqF2piD/H2Zt9hI9UH9BF4w=
+github.com/filecoin-project/go-storage-miner v0.0.0-20200325225107-781a37a4b1b4/go.mod h1:9QvK8INekeDqs1LrrUHsAHX+pjW69F8yn36wT/2EBz0=
 github.com/filecoin-project/specs-actors v0.0.0-20200210130641-2d1fbd8672cf/go.mod h1:xtDZUB6pe4Pksa/bAJbJ693OilaC5Wbot9jMhLm3cZA=
 github.com/filecoin-project/specs-actors v0.0.0-20200226200336-94c9b92b2775/go.mod h1:0HAWYrvajFHDgRaKbF0rl+IybVLZL5z4gQ8koCMPhoU=
 github.com/filecoin-project/specs-actors v0.0.0-20200306000749-99e98e61e2a0 h1:n7Q8UMP2Jsj1dQkM0tRKVWUeAbrz8x2f8l1UVeB4PC4=
