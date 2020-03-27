@@ -513,6 +513,7 @@ func (syncer *Syncer) handleNewTipSet(ctx context.Context, ci *block.ChainInfo) 
 	// Try adding the tipsets of the chain to the store, checking for new
 	// heaviest tipsets.
 	for i, ts := range tipsets {
+		logSyncer.Infof("processing tipset %d", i)
 		// TODO: this "i==0" leaks EC specifics into syncer abstraction
 		// for the sake of efficiency, consider plugging up this leak.
 		var wts block.TipSet
@@ -547,6 +548,7 @@ func (syncer *Syncer) handleNewTipSet(ctx context.Context, ci *block.ChainInfo) 
 				// have access to the chain. If syncOne fails for non-consensus reasons,
 				// there is no assumption that the running node's data is valid at all,
 				// so we don't really lose anything with this simplification.
+				logSyncer.Infof("syncOne err: %s", err)
 				syncer.badTipSets.AddChain(tipsets[i:])
 				return err
 			}
