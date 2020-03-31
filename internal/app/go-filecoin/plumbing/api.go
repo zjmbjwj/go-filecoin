@@ -240,6 +240,7 @@ func (api *API) StateView(baseKey block.TipSetKey) (*appstate.View, error) {
 // channel returned receives either nil or an error and is immediately closed after
 // the message is published to the network to signal that the publish is complete.
 func (api *API) MessageSend(ctx context.Context, from, to address.Address, value types.AttoFIL, gasPrice types.AttoFIL, gasLimit gas.Unit, method abi.MethodNum, params interface{}) (cid.Cid, chan error, error) {
+	fmt.Printf("sending message here with params: %v\n", params)
 	return api.outbox.Send(ctx, from, to, value, gasPrice, gasLimit, true, method, params)
 }
 
