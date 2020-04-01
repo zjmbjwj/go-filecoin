@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -20,6 +21,19 @@ import (
 	"github.com/filecoin-project/go-filecoin/internal/pkg/types"
 	vmaddr "github.com/filecoin-project/go-filecoin/internal/pkg/vm/address"
 )
+
+func TestNegativeToUnsigned(t *testing.T) {
+	var negative int64
+	negative = -6
+	bs, err := encoding.Encode(negative)
+	require.NoError(t, err)
+	fmt.Printf("bs: %x\n", bs)
+
+	var u uint64
+	err = encoding.Decode(bs, &u)
+	assert.Error(t, err)
+	fmt.Printf("err: %v\n", err)
+}
 
 func TestTriangleEncoding(t *testing.T) {
 	tf.UnitTest(t)
