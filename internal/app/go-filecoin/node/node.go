@@ -608,11 +608,6 @@ func (node *Node) StartMining(ctx context.Context) error {
 		fmt.Printf("error starting storage provider: %s\n", err)
 	}
 
-	// TODO: Retrieval Market Integration
-	//if err := node.RetrievalProtocol.RetrievalProvider.Start(); err != nil {
-	//	fmt.Printf("error starting retrieval provider: %s\n", err)
-	//}
-
 	node.setIsMining(true)
 
 	return nil
