@@ -19,7 +19,7 @@ import (
 )
 
 type faultChecker interface {
-	VerifyConsensusFault(ctx context.Context, h1, h2, extra []byte, head block.TipSetKey, view slashing.FaultStateView, earliest abi.ChainEpoch) (*runtime.ConsensusFault, error)
+	VerifyConsensusFault(ctx context.Context, h1, h2, extra []byte, head block.TipSetKey, view slashing.FaultStateView) (*runtime.ConsensusFault, error)
 }
 
 // Syscalls contains the concrete implementation of VM system calls, including connection to
@@ -73,6 +73,6 @@ func (s *Syscalls) VerifyPoSt(ctx context.Context, info abi.PoStVerifyInfo) erro
 	return nil
 }
 
-func (s *Syscalls) VerifyConsensusFault(ctx context.Context, h1, h2, extra []byte, head block.TipSetKey, view vm.SyscallsStateView, earliest abi.ChainEpoch) (*runtime.ConsensusFault, error) {
-	return s.faultChecker.VerifyConsensusFault(ctx, h1, h2, extra, head, view, earliest)
+func (s *Syscalls) VerifyConsensusFault(ctx context.Context, h1, h2, extra []byte, head block.TipSetKey, view vm.SyscallsStateView) (*runtime.ConsensusFault, error) {
+	return s.faultChecker.VerifyConsensusFault(ctx, h1, h2, extra, head, view)
 }

@@ -27,7 +27,7 @@ type SyscallsImpl interface {
 	ComputeUnsealedSectorCID(ctx context.Context, proof abi.RegisteredProof, pieces []abi.PieceInfo) (cid.Cid, error)
 	VerifySeal(ctx context.Context, info abi.SealVerifyInfo) error
 	VerifyPoSt(ctx context.Context, info abi.PoStVerifyInfo) error
-	VerifyConsensusFault(ctx context.Context, h1, h2, extra []byte, head block.TipSetKey, view SyscallsStateView, earliest abi.ChainEpoch) (*specsruntime.ConsensusFault, error)
+	VerifyConsensusFault(ctx context.Context, h1, h2, extra []byte, head block.TipSetKey, view SyscallsStateView) (*specsruntime.ConsensusFault, error)
 }
 
 type syscalls struct {
@@ -66,7 +66,7 @@ func (sys syscalls) VerifyPoSt(info abi.PoStVerifyInfo) error {
 	return sys.impl.VerifyPoSt(sys.ctx, info)
 }
 
-func (sys syscalls) VerifyConsensusFault(h1, h2, extra []byte, earliest abi.ChainEpoch) (*specsruntime.ConsensusFault, error) {
+func (sys syscalls) VerifyConsensusFault(h1, h2, extra []byte) (*specsruntime.ConsensusFault, error) {
 	sys.gasTank.Charge(sys.pricelist.OnVerifyConsensusFault(), "VerifyConsensusFault")
-	return sys.impl.VerifyConsensusFault(sys.ctx, h1, h2, extra, sys.head, sys.state, earliest)
+	return sys.impl.VerifyConsensusFault(sys.ctx, h1, h2, extra, sys.head, sys.state)
 }

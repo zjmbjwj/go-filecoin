@@ -129,8 +129,8 @@ func (s specialSyscallWrapper) VerifyPoSt(_ context.Context, info abi.PoStVerify
 	return s.internal.VerifyPoSt(info)
 }
 
-func (s specialSyscallWrapper) VerifyConsensusFault(_ context.Context, h1, h2, extra []byte, _ block.TipSetKey, _ SyscallsStateView, earliest abi.ChainEpoch) (*runtime.ConsensusFault, error) {
-	return s.internal.VerifyConsensusFault(h1, h2, extra, earliest)
+func (s specialSyscallWrapper) VerifyConsensusFault(_ context.Context, h1, h2, extra []byte, _ block.TipSetKey, _ SyscallsStateView) (*runtime.ConsensusFault, error) {
+	return s.internal.VerifyConsensusFault(h1, h2, extra)
 }
 
 func NewState() *ValidationVMWrapper {
