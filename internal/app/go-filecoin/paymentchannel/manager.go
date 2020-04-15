@@ -2,6 +2,7 @@ package paymentchannel
 
 import (
 	"context"
+	"errors"
 
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-fil-markets/shared"
@@ -11,6 +12,7 @@ import (
 	"github.com/filecoin-project/specs-actors/actors/builtin"
 	initActor "github.com/filecoin-project/specs-actors/actors/builtin/init"
 	paychActor "github.com/filecoin-project/specs-actors/actors/builtin/paych"
+	"github.com/filecoin-project/specs-actors/actors/runtime/exitcode"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
@@ -114,10 +116,9 @@ func (pm *Manager) GetPaymentChannelInfo(paychAddr address.Address) (*ChannelInf
 	return &chinfo, nil
 }
 
-// CreatePaymentChannel will send the message to the InitActor to create a paych.Actor.
-// If successful, a new payment channel entry will be persisted to the
-// paymentChannels via a message wait handler.  Returns the created payment channel address
-func (pm *Manager) CreatePaymentChannel(clientAddress, minerAddress address.Address, amt abi.TokenAmount) (address.Address, error) {
+// CreatePaymentChannel will send the message to the InitActor to create a paych.Actor and
+// return the resulting message CID
+func (pm *Manager) CreatePaymentChannel(clientAddress, minerAddress address.Address, amt abi.TokenAmount) (cid.Cid, error) {
 	chinfo, err := pm.GetPaymentChannelByAccounts(clientAddress, minerAddress)
 	if err != nil {
 		return address.Undef, err
@@ -144,10 +145,77 @@ func (pm *Manager) CreatePaymentChannel(clientAddress, minerAddress address.Addr
 	if err != nil {
 		return address.Undef, err
 	}
+	return msgCid, nil
 
+	//handleResult := func(b *block.Block, sm *types.SignedMessage, mr *vm.MessageReceipt) error {
+	//	var res initActor.ExecReturn
+	//	if err := encoding.Decode(mr.ReturnValue, &res); err != nil {
+	//		return err
+	//	}
+	//
+	//	var msgParams initActor.ExecParams
+	//	if err := encoding.Decode(sm.Message.Params, &msgParams); err != nil {
+	//		return err
+	//	}
+	//
+	//	var ctorParams *paychActor.ConstructorParams
+	//	if err = encoding.Decode(msgParams.ConstructorParams, &ctorParams); err != nil {
+	//		return err
+	//	}
+	//
+	//	chinfo := ChannelInfo{UniqueAddr: res.RobustAddress, From: ctorParams.From, To: ctorParams.To}
+	//	newPaychAddr = res.RobustAddress
+	//	return pm.paymentChannels.Begin(res.RobustAddress, &chinfo)
+	//}
+	//
+	//err = pm.waiter.Wait(pm.ctx, msgCid, handleResult)
+	//if err != nil {
+	//	return address.Undef, err
+	//}
+
+}
+
+func (pm *Manager) AddFundsToChannel(paychAddr address.Address, amt abi.TokenAmount) (cid.Cid, error) {
+	chinfo, err := pm.GetPaymentChannelInfo(paychAddr)
+	if err != nil {
+		return cid.Undef, err
+	}
+	if chinfo.IsZero() {
+		return cid.Undef, xerrors.Errorf("payment channel does not exist: %s", paychAddr.String())
+	}
+
+	// post message sending value to payment channel actor
+	msgCid, _, err := pm.sender.Send(
+		pm.ctx,
+		chinfo.From,
+		paychAddr,
+		types.NewAttoFIL(amt.Int),
+		defaultGasPrice,
+		defaultGasLimit,
+		true,
+		builtin.MethodsInit.Exec,
+		nil,
+	)
+	return msgCid, err
+}
+
+func (pm *Manager) WaitForPaymentChannelAddFunds(messageCID cid.Cid) error {
+	return pm.waiter.Wait(pm.ctx, messageCID, func(b *block.Block, sm *types.SignedMessage, mr *vm.MessageReceipt) error {
+		if mr.ExitCode != exitcode.Ok {
+			return xerrors.Errorf("add funds message %s failed with exit code %d", messageCID.String(), mr.ReturnValue)
+		}
+		return nil
+	})
+}
+
+func (pm *Manager) WaitForPaymentChannelCreation(messageCID cid.Cid) (address.Address, error) {
 	var newPaychAddr address.Address
-
 	handleResult := func(b *block.Block, sm *types.SignedMessage, mr *vm.MessageReceipt) error {
+		if mr.ExitCode != exitcode.Ok {
+			return xerrors.Errorf("payment channel create message %s failed with exit code %d",
+				messageCID.String(), mr.ReturnValue)
+		}
+
 		var res initActor.ExecReturn
 		if err := encoding.Decode(mr.ReturnValue, &res); err != nil {
 			return err
@@ -168,11 +236,10 @@ func (pm *Manager) CreatePaymentChannel(clientAddress, minerAddress address.Addr
 		return pm.paymentChannels.Begin(res.RobustAddress, &chinfo)
 	}
 
-	err = pm.waiter.Wait(pm.ctx, msgCid, handleResult)
+	err := pm.waiter.Wait(pm.ctx, messageCID, handleResult)
 	if err != nil {
 		return address.Undef, err
 	}
-
 	return newPaychAddr, nil
 }
 

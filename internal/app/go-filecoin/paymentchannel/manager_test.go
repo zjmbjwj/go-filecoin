@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	retrievalmarketconnector "github.com/filecoin-project/go-filecoin/internal/app/go-filecoin/connectors/retrieval_market"
 	. "github.com/filecoin-project/go-filecoin/internal/app/go-filecoin/paymentchannel"
 	paychtest "github.com/filecoin-project/go-filecoin/internal/app/go-filecoin/paymentchannel/testing"
 	"github.com/filecoin-project/go-filecoin/internal/pkg/block"
@@ -28,6 +29,10 @@ import (
 	tf "github.com/filecoin-project/go-filecoin/internal/pkg/testhelpers/testflags"
 	"github.com/filecoin-project/go-filecoin/internal/pkg/types"
 )
+
+func TestPaychManagerFitsAPI(t *testing.T) {
+	var _ retrievalmarketconnector.PaychMgrAPI = new(Manager)
+}
 
 func TestManager_GetPaymentChannelInfo(t *testing.T) {
 	tf.UnitTest(t)

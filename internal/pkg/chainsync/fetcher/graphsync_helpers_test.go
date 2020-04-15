@@ -1,12 +1,10 @@
 package fetcher_test
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"testing"
 	"time"
@@ -16,12 +14,10 @@ import (
 	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-graphsync"
-	"github.com/ipfs/go-graphsync/ipldbridge"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipld/go-ipld-prime"
-	ipldfree "github.com/ipld/go-ipld-prime/impl/free"
 	cidlink "github.com/ipld/go-ipld-prime/linking/cid"
 	"github.com/ipld/go-ipld-prime/traversal/selector"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -203,22 +199,22 @@ func (mgs *mockableGraphsync) verifyExpectations() {
 // stubResponseWithLoader stubs a response when the mocked graphsync
 // instance is called with the given peer, selector, one of the cids
 // by executing the specified root and selector using the given cid loader
-func (mgs *mockableGraphsync) stubResponseWithLoader(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, cids ...cid.Cid) {
-	for _, c := range cids {
-		mgs.stubSingleResponseWithLoader(pid, s, loader, noHangup, c)
-	}
-}
+//func (mgs *mockableGraphsync) stubResponseWithLoader(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, cids ...cid.Cid) {
+//	for _, c := range cids {
+//		mgs.stubSingleResponseWithLoader(pid, s, loader, noHangup, c)
+//	}
+//}
 
 // stubResponseWithHangupAfter stubs a response when the mocked graphsync
 // instance is called with the given peer, selector, one of the cids
 // by executing the specified root and selector using the given cid loader
 // however the response will hangup at stop sending on the channel after N
-// responses
-func (mgs *mockableGraphsync) stubResponseWithHangupAfter(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, hangup int, cids ...cid.Cid) {
-	for _, c := range cids {
-		mgs.stubSingleResponseWithLoader(pid, s, loader, hangup, c)
-	}
-}
+//// responses
+//func (mgs *mockableGraphsync) stubResponseWithHangupAfter(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, hangup int, cids ...cid.Cid) {
+//	for _, c := range cids {
+//		mgs.stubSingleResponseWithLoader(pid, s, loader, hangup, c)
+//	}
+//}
 
 var (
 	errHangup = errors.New("Hangup")
@@ -227,57 +223,57 @@ var (
 // stubResponseWithLoader stubs a response when the mocked graphsync
 // instance is called with the given peer, selector, and cid
 // by executing the specified root and selector using the given cid loader
-func (mgs *mockableGraphsync) stubSingleResponseWithLoader(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, hangup int, c cid.Cid) {
-	var blks []format.Node
-	var responses []graphsync.ResponseProgress
-
-	linkLoader := func(lnk ipld.Link, lnkCtx ipld.LinkContext) (io.Reader, error) {
-		cid := lnk.(cidlink.Link).Cid
-		node, err := loader(cid)
-		if err != nil {
-			return nil, err
-		}
-		blks = append(blks, node)
-		return bytes.NewBuffer(node.RawData()), nil
-	}
-	root := cidlink.Link{Cid: c}
-	node, err := root.Load(mgs.ctx, ipld.LinkContext{}, ipldfree.NodeBuilder(), linkLoader)
-	if err != nil {
-		mgs.stubs = append(mgs.stubs, requestResponse{
-			fakeRequest{pid, root, s},
-			fakeResponse{errs: []error{err}, hangupAfter: hangup},
-		})
-		return
-	}
-	visited := 0
-	visitor := func(tp ipldbridge.TraversalProgress, n ipld.Node, tr ipldbridge.TraversalReason) error {
-		if hangup != noHangup && visited >= hangup {
-			return errHangup
-		}
-		visited++
-		responses = append(responses, graphsync.ResponseProgress{Node: n, Path: tp.Path, LastBlock: tp.LastBlock})
-		return nil
-	}
-	err = ipldbridge.TraversalProgress{
-		Cfg: &ipldbridge.TraversalConfig{
-			Ctx:        mgs.ctx,
-			LinkLoader: linkLoader,
-		},
-	}.WalkAdv(node, s, visitor)
-	if err == errHangup {
-		err = nil
-	}
-	mgs.stubs = append(mgs.stubs, requestResponse{
-		fakeRequest{pid, root, s},
-		fakeResponse{responses, []error{err}, blks, hangup},
-	})
-}
+//func (mgs *mockableGraphsync) stubSingleResponseWithLoader(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, hangup int, c cid.Cid) {
+//	var blks []format.Node
+//	var responses []graphsync.ResponseProgress
+//
+//	linkLoader := func(lnk ipld.Link, lnkCtx ipld.LinkContext) (io.Reader, error) {
+//		cid := lnk.(cidlink.Link).Cid
+//		node, err := loader(cid)
+//		if err != nil {
+//			return nil, err
+//		}
+//		blks = append(blks, node)
+//		return bytes.NewBuffer(node.RawData()), nil
+//	}
+//	root := cidlink.Link{Cid: c}
+//	node, err := root.Load(mgs.ctx, ipld.LinkContext{}, ipldfree.NodeBuilder(), linkLoader)
+//	if err != nil {
+//		mgs.stubs = append(mgs.stubs, requestResponse{
+//			fakeRequest{pid, root, s},
+//			fakeResponse{errs: []error{err}, hangupAfter: hangup},
+//		})
+//		return
+//	}
+//	visited := 0
+//	visitor := func(tp ipldbridge.TraversalProgress, n ipld.Node, tr ipldbridge.TraversalReason) error {
+//		if hangup != noHangup && visited >= hangup {
+//			return errHangup
+//		}
+//		visited++
+//		responses = append(responses, graphsync.ResponseProgress{Node: n, Path: tp.Path, LastBlock: tp.LastBlock})
+//		return nil
+//	}
+//	err = ipldbridge.TraversalProgress{
+//		Cfg: &ipldbridge.TraversalConfig{
+//			Ctx:        mgs.ctx,
+//			LinkLoader: linkLoader,
+//		},
+//	}.WalkAdv(node, s, visitor)
+//	if err == errHangup {
+//		err = nil
+//	}
+//	mgs.stubs = append(mgs.stubs, requestResponse{
+//		fakeRequest{pid, root, s},
+//		fakeResponse{responses, []error{err}, blks, hangup},
+//	})
+//}
 
 // expectRequestToRespondWithLoader is just a combination of an expectation and a stub --
 // it expects the request to come in and responds with the given loader
 func (mgs *mockableGraphsync) expectRequestToRespondWithLoader(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, cids ...cid.Cid) {
 	mgs.expectRequest(pid, s, cids...)
-	mgs.stubResponseWithLoader(pid, s, loader, cids...)
+	//mgs.stubResponseWithLoader(pid, s, loader, cids...)
 }
 
 // expectRequestToRespondWithHangupAfter is just a combination of an expectation and a stub --
@@ -285,7 +281,7 @@ func (mgs *mockableGraphsync) expectRequestToRespondWithLoader(pid peer.ID, s se
 // the given number of responses
 func (mgs *mockableGraphsync) expectRequestToRespondWithHangupAfter(pid peer.ID, s selector.Selector, loader mockGraphsyncLoader, hangup int, cids ...cid.Cid) {
 	mgs.expectRequest(pid, s, cids...)
-	mgs.stubResponseWithHangupAfter(pid, s, loader, hangup, cids...)
+	//mgs.stubResponseWithHangupAfter(pid, s, loader, hangup, cids...)
 }
 
 func (mgs *mockableGraphsync) processResponse(ctx context.Context, mr fakeResponse) (<-chan graphsync.ResponseProgress, <-chan error) {

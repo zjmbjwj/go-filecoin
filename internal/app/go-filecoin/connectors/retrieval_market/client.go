@@ -5,11 +5,13 @@ import (
 	"context"
 	"errors"
 
+	"github.com/filecoin-project/go-fil-markets/retrievalmarket"
+	"github.com/filecoin-project/go-fil-markets/shared"
+	"github.com/ipfs/go-cid"
+
 	"github.com/filecoin-project/go-filecoin/internal/pkg/encoding"
 
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-fil-markets/retrievalmarket"
-	"github.com/filecoin-project/go-fil-markets/shared"
 	"github.com/filecoin-project/specs-actors/actors/abi"
 	paychActor "github.com/filecoin-project/specs-actors/actors/builtin/paych"
 	blockstore "github.com/ipfs/go-ipfs-blockstore"
@@ -49,28 +51,39 @@ func NewRetrievalClientConnector(
 }
 
 // GetOrCreatePaymentChannel gets or creates a payment channel and posts to chain
-func (r *RetrievalClientConnector) GetOrCreatePaymentChannel(ctx context.Context, clientAddress address.Address, minerAddress address.Address, clientFundsAvailable abi.TokenAmount, tok shared.TipSetToken) (address.Address, error) {
+func (r *RetrievalClientConnector) GetOrCreatePaymentChannel(ctx context.Context, clientAddress address.Address, minerAddress address.Address, clientFundsAvailable abi.TokenAmount, tok shared.TipSetToken) (address.Address, cid.Cid, error) {
 	if clientAddress == address.Undef || minerAddress == address.Undef {
-		return address.Undef, errors.New("empty address")
+		return address.Undef, cid.Undef, errors.New("empty address")
 	}
 	chinfo, err := r.paychMgr.GetPaymentChannelByAccounts(clientAddress, minerAddress)
 	if err != nil {
-		return address.Undef, err
+		return address.Undef, cid.Undef, err
 	}
 	if chinfo.IsZero() {
 		// create the payment channel
 		bal, err := r.getBalance(ctx, clientAddress, tok)
 		if err != nil {
-			return address.Undef, err
+			return address.Undef, cid.Undef, err
 		}
 
 		filAmt := types.NewAttoFIL(clientFundsAvailable.Int)
 		if bal.LessThan(filAmt) {
-			return address.Undef, errors.New("not enough funds in wallet")
+			return address.Undef, cid.Undef, errors.New("not enough funds in wallet")
 		}
-		return r.paychMgr.CreatePaymentChannel(clientAddress, minerAddress, clientFundsAvailable)
+		msgCID, err := r.paychMgr.CreatePaymentChannel(clientAddress, minerAddress, clientFundsAvailable)
+		return address.Undef, msgCID, err
 	}
-	return chinfo.UniqueAddr, nil
+	paychAddr := chinfo.UniqueAddr
+	msgCID, err := r.paychMgr.AddFundsToChannel(paychAddr, clientFundsAvailable)
+	return paychAddr, msgCID, err
+}
+
+func (r *RetrievalClientConnector) WaitForPaymentChannelAddFunds(messageCID cid.Cid) error {
+	return r.paychMgr.WaitForPaymentChannelAddFunds(messageCID)
+}
+
+func (r *RetrievalClientConnector) WaitForPaymentChannelCreation(messageCID cid.Cid) (address.Address, error) {
+	return r.paychMgr.WaitForPaymentChannelCreation(messageCID)
 }
 
 // AllocateLane creates a new lane for this paymentChannel with 0 FIL in the lane
@@ -135,7 +148,7 @@ func (r *RetrievalClientConnector) getBlockHeight(tok shared.TipSetToken) (abi.C
 	return ts.Height()
 }
 
-func (r *RetrievalClientConnector) getBalance(ctx context.Context, account address.Address, tok shared.TipSetToken) (types.AttoFIL, error) {
+func (r *RetrievalClientConnector) getBalance(ctx context.Context, account address.Address, tok shared.TipSetToken) (abi.TokenAmount, error) {
 	var tsk block.TipSetKey
 	if err := encoding.Decode(tok, &tsk); err != nil {
 		return types.ZeroAttoFIL, xerrors.Wrapf(err, "failed to marshal TipSetToken into a TipSetKey")
