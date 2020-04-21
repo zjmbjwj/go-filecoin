@@ -13,7 +13,6 @@ import (
 	"github.com/ipfs/go-datastore"
 	dss "github.com/ipfs/go-datastore/sync"
 	graphsync "github.com/ipfs/go-graphsync/impl"
-	"github.com/ipfs/go-graphsync/ipldbridge"
 	gsnet "github.com/ipfs/go-graphsync/network"
 	gsstoreutil "github.com/ipfs/go-graphsync/storeutil"
 	bstore "github.com/ipfs/go-ipfs-blockstore"
@@ -803,8 +802,6 @@ func TestRealWorldGraphsyncFetchOnlyHeaders(t *testing.T) {
 
 	// setup a graphsync fetcher and a graphsync responder
 
-	bridge1 := ipldbridge.NewIPLDBridge()
-	bridge2 := ipldbridge.NewIPLDBridge()
 	bs := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
 
 	bv := consensus.NewDefaultBlockValidator(chainClock)
@@ -897,8 +894,6 @@ func TestRealWorldGraphsyncFetchAcrossNetwork(t *testing.T) {
 
 	// setup a graphsync fetcher and a graphsync responder
 
-	bridge1 := ipldbridge.NewIPLDBridge()
-	bridge2 := ipldbridge.NewIPLDBridge()
 	bs := bstore.NewBlockstore(dss.MutexWrap(datastore.NewMapDatastore()))
 	bv := th.NewFakeBlockValidator()
 	fc := clock.NewFake(time.Now())
