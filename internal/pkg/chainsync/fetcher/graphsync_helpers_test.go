@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipld/go-ipld-prime/traversal"
+
 	"github.com/filecoin-project/go-address"
 	fbig "github.com/filecoin-project/specs-actors/actors/abi/big"
 	blocks "github.com/ipfs/go-block-format"
@@ -249,20 +251,20 @@ func (mgs *mockableGraphsync) stubSingleResponseWithLoader(pid peer.ID, s select
 		return
 	}
 	visited := 0
-	//visitor := func(tp ipldbridge.TraversalProgress, n ipld.Node, tr ipldbridge.TraversalReason) error {
-	//	if hangup != noHangup && visited >= hangup {
-	//		return errHangup
-	//	}
-	//	visited++
-	//	responses = append(responses, graphsync.ResponseProgress{Node: n, Path: tp.Path, LastBlock: tp.LastBlock})
-	//	return nil
-	//}
-	//err = ipldbridge.TraversalProgress{
-	//	Cfg: &ipldbridge.TraversalConfig{
-	//		Ctx:        mgs.ctx,
-	//		LinkLoader: linkLoader,
-	//	},
-	//}.WalkAdv(node, s, visitor)
+	visitor := func(tp traversal.Progress, n ipld.Node, tr traversal.VisitReason) error {
+		if hangup != noHangup && visited >= hangup {
+			return errHangup
+		}
+		visited++
+		responses = append(responses, graphsync.ResponseProgress{Node: n, Path: tp.Path, LastBlock: tp.LastBlock})
+		return nil
+	}
+	err = traversal.Progress{
+		Cfg: &traversal.Config{
+			Ctx:        mgs.ctx,
+			LinkLoader: linkLoader,
+		},
+	}.WalkAdv(node, s, visitor)
 	if err == errHangup {
 		err = nil
 	}
